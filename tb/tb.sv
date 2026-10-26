@@ -3,6 +3,10 @@
 module TB;
 
 
+// ------------------------------------------------------------
+// APB-сигналы
+// ------------------------------------------------------------
+
 logic pclk;
 logic presetn;
 
@@ -14,116 +18,216 @@ logic [31:0] paddr;
 logic [31:0] pwdata;
 
 wire [31:0] prdata;
-wire pready;
-wire pslverr;
+wire        pready;
+wire        pslverr;
 
 
-parameter p_device_offset = 32'h7000_0000;
+// ------------------------------------------------------------
+// Базовый адрес нашего устройства
+// ------------------------------------------------------------
+
+localparam logic [31:0] DEVICE_BASE = 32'h7000_0000;
 
 
-logic [31:0] address;
-logic [31:0] data_to_device;
-logic [31:0] data_from_device;
+// ------------------------------------------------------------
+// Персональные данные
+// ------------------------------------------------------------
+
+// Номер в списке
+localparam logic [31:0] STUDENT_NUMBER = 32'd6;
 
 
-// Подключаем тестируемый APB slave
+// Дата выполнения лабораторной: 26.10.2026
+//
+// Точки физически не помещаются вместе со всеми цифрами
+// в один 32-битный регистр,
+// поэтому дата записана как 8 hex-цифр: DDMMYYYY.
+localparam logic [31:0] DATE_VALUE = 32'h2610_2026;
+
+
+// "Ores" в ASCII:
+//
+// O = 4F
+// r = 72
+// e = 65
+// s = 73
+localparam logic [31:0] SURNAME_VALUE = 32'h4F72_6573;
+
+
+// "Mari" в ASCII:
+//
+// M = 4D
+// a = 61
+// r = 72
+// i = 69
+localparam logic [31:0] NAME_VALUE = 32'h4D61_7269;
+
+
+// Переменная для результата чтения
+logic [31:0] read_data;
+
+
+// ------------------------------------------------------------
+// Подключение DUT
+// ------------------------------------------------------------
+
 apb_slave DUT
 (
     .pclk    (pclk),
     .presetn (presetn),
+
     .paddr   (paddr),
     .pwdata  (pwdata),
+
     .psel    (psel),
     .penable (penable),
     .pwrite  (pwrite),
+
     .pready  (pready),
     .pslverr (pslverr),
     .prdata  (prdata)
 );
 
 
-// -------------------------------------------------
-// Задача записи по APB
-// -------------------------------------------------
-task apb_write(
+// ------------------------------------------------------------
+// Генерация тактового сигнала
+//
+// Полупериод = 10 нс
+// Период = 20 нс
+// ------------------------------------------------------------
+
+always
+begin
+    #10 pclk = ~pclk;
+end
+
+
+// ------------------------------------------------------------
+// APB WRITE
+// ------------------------------------------------------------
+
+task automatic apb_write
+(
     input logic [31:0] addr,
     input logic [31:0] data
 );
 
-    wait ((penable == 0) && (pready == 0));
+begin
+
+    // Ждём свободный интерфейс
+    wait ((penable == 1'b0) && (pready == 1'b0));
+
+
+    // ----------------------------
+    // SETUP
+    // ----------------------------
 
     @(posedge pclk);
 
-    psel   <= 1'b1;
-    paddr  <= addr;
-    pwdata <= data;
-    pwrite <= 1'b1;
+    psel    <= 1'b1;
+    penable <= 1'b0;
+
+    pwrite  <= 1'b1;
+
+    paddr   <= addr;
+    pwdata  <= data;
+
+
+    // ----------------------------
+    // ACCESS
+    // ----------------------------
 
     @(posedge pclk);
 
     penable <= 1'b1;
 
-    @(posedge pclk);
 
+    // Ждём готовность slave
     wait (pready == 1'b1);
 
+
     @(posedge pclk);
 
+    // Завершаем транзакцию
     psel    <= 1'b0;
     penable <= 1'b0;
     pwrite  <= 1'b0;
 
+
     @(posedge pclk);
+
+end
 
 endtask
 
 
-// -------------------------------------------------
-// Задача чтения по APB
-// -------------------------------------------------
-task apb_read(
+// ------------------------------------------------------------
+// APB READ
+// ------------------------------------------------------------
+
+task automatic apb_read
+(
     input  logic [31:0] addr,
     output logic [31:0] data
 );
 
-    wait ((penable == 0) && (pready == 0));
+begin
+
+    wait ((penable == 1'b0) && (pready == 1'b0));
+
+
+    // ----------------------------
+    // SETUP
+    // ----------------------------
 
     @(posedge pclk);
 
-    psel   <= 1'b1;
-    pwrite <= 1'b0;
-    paddr  <= addr;
+    psel    <= 1'b1;
+    penable <= 1'b0;
+
+    pwrite  <= 1'b0;
+
+    paddr   <= addr;
+
+
+    // ----------------------------
+    // ACCESS
+    // ----------------------------
 
     @(posedge pclk);
 
     penable <= 1'b1;
 
-    @(posedge pclk);
 
     wait (pready == 1'b1);
 
-    @(posedge pclk);
 
+    // PRDATA уже выставлены slave.
     data = prdata;
 
+
+    @(posedge pclk);
+
+    // Завершаем транзакцию
     psel    <= 1'b0;
     penable <= 1'b0;
 
+
     @(posedge pclk);
+
+end
 
 endtask
 
 
-// Тактовый сигнал.
-// Период = 20 нс.
-always
-    #10 pclk = ~pclk;
+// ------------------------------------------------------------
+// Основной тест
+// ------------------------------------------------------------
 
-
-// Основной сценарий тестирования
 initial
 begin
 
+    // Начальные значения
     pclk    = 1'b0;
     presetn = 1'b1;
 
@@ -131,16 +235,19 @@ begin
     penable = 1'b0;
     pwrite  = 1'b0;
 
-    paddr   = '0;
-    pwdata  = '0;
+    paddr   = 32'h0;
+    pwdata  = 32'h0;
+
+    read_data = 32'h0;
 
 
-    // Ждём несколько тактов
+    // --------------------------------------------------------
+    // Сброс
+    // --------------------------------------------------------
+
     repeat (5)
         @(posedge pclk);
 
-
-    // Сброс
     presetn = 1'b0;
 
     repeat (5)
@@ -152,65 +259,149 @@ begin
         @(posedge pclk);
 
 
-    // ----------------------------
-    // Тест №1
-    // ----------------------------
+    $display("");
+    $display("============================================");
+    $display("START APB TEST");
+    $display("============================================");
 
-    address = p_device_offset + 32'h0;
 
-    data_to_device = 32'h1234_5678;
+    // ========================================================
+    // 1. Адрес 0x00
+    // Номер в списке = 6
+    // ========================================================
 
-    apb_write(address, data_to_device);
+    $display("");
+    $display("TEST 1: student number");
 
-    apb_read(address, data_from_device);
-
-    $display(
-        "Addr=0x%h, write data=0x%h, read data=0x%h",
-        address,
-        data_to_device,
-        data_from_device
+    apb_write(
+        DEVICE_BASE + 32'h00,
+        STUDENT_NUMBER
     );
 
-
-    // ----------------------------
-    // Тест №2
-    // ----------------------------
-
-    data_to_device = 32'h0000_0001;
-
-    apb_write(address, data_to_device);
-
-    apb_read(address, data_from_device);
-
-    $display(
-        "Addr=0x%h, write data=0x%h, read data=0x%h",
-        address,
-        data_to_device,
-        data_from_device
+    apb_read(
+        DEVICE_BASE + 32'h00,
+        read_data
     );
 
+    $display(
+        "RESULT 0x00: write=0x%h read=0x%h",
+        STUDENT_NUMBER,
+        read_data
+    );
 
-    repeat (10)
+    // Поскольку 6 имеет младший бит 0,
+    // по пункту 8 ожидаем AAAA_AAAA.
+    if (read_data == 32'hAAAA_AAAA)
+        $display("TEST 1 PASSED");
+    else
+        $display("TEST 1 FAILED");
+
+
+    // ========================================================
+    // 2. Адрес 0x04
+    // Дата
+    // ========================================================
+
+    $display("");
+    $display("TEST 2: date");
+
+    apb_write(
+        DEVICE_BASE + 32'h04,
+        DATE_VALUE
+    );
+
+    apb_read(
+        DEVICE_BASE + 32'h04,
+        read_data
+    );
+
+    $display(
+        "RESULT 0x04: write=0x%h read=0x%h",
+        DATE_VALUE,
+        read_data
+    );
+
+    if (read_data == DATE_VALUE)
+        $display("TEST 2 PASSED");
+    else
+        $display("TEST 2 FAILED");
+
+
+    // ========================================================
+    // 3. Адрес 0x08
+    // Ores
+    // ========================================================
+
+    $display("");
+    $display("TEST 3: surname Ores");
+
+    apb_write(
+        DEVICE_BASE + 32'h08,
+        SURNAME_VALUE
+    );
+
+    apb_read(
+        DEVICE_BASE + 32'h08,
+        read_data
+    );
+
+    $display(
+        "RESULT 0x08: write=0x%h read=0x%h",
+        SURNAME_VALUE,
+        read_data
+    );
+
+    if (read_data == SURNAME_VALUE)
+        $display("TEST 3 PASSED");
+    else
+        $display("TEST 3 FAILED");
+
+
+    // ========================================================
+    // 4. Адрес 0x0C
+    // Mari
+    // ========================================================
+
+    $display("");
+    $display("TEST 4: name Mari");
+
+    apb_write(
+        DEVICE_BASE + 32'h0C,
+        NAME_VALUE
+    );
+
+    apb_read(
+        DEVICE_BASE + 32'h0C,
+        read_data
+    );
+
+    $display(
+        "RESULT 0x0C: write=0x%h read=0x%h",
+        NAME_VALUE,
+        read_data
+    );
+
+    if (read_data == NAME_VALUE)
+        $display("TEST 4 PASSED");
+    else
+        $display("TEST 4 FAILED");
+
+
+    // ========================================================
+    // Конец
+    // ========================================================
+
+    $display("");
+    $display("============================================");
+    $display("END APB TEST");
+    $display("============================================");
+
+
+    repeat (5)
         @(posedge pclk);
 
 
     $stop;
-
-end
-
-
-// Вывод изменения сигналов в консоль
-initial
-begin
-
-    $monitor(
-        "APB: PENABLE=%b PREADY=%b PADDR=0x%h PWDATA=0x%h PRDATA=0x%h",
-        penable,
-        pready,
-        paddr,
-        pwdata,
-        prdata
-    );
 
 end
 
