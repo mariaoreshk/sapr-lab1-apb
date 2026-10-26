@@ -90,8 +90,18 @@ begin
 
                         8'h00:
                         begin
-                            // Запись в регистр со смещением 0
-                            register_with_some_name <= pwdata;
+                            // Если младший бит записываемого значения равен 0,
+                            // сохраняем AAAA_AAAA.
+                            // Если равен 1 — сохраняем 5555_5555.
+
+                            if (pwdata[0] == 1'b0)
+                            begin
+                                register_with_some_name <= 32'hAAAA_AAAA;
+                            end
+                            else
+                            begin
+                                register_with_some_name <= 32'h5555_5555;
+                            end
                         end
 
 
@@ -171,17 +181,6 @@ begin
             end
 
         endcase
-
-
-        // Логика из исходной заготовки задания
-        if (register_with_some_name[0] == 1'b0)
-        begin
-            register_with_some_name <= 32'hAAAA_AAAA;
-        end
-        else
-        begin
-            register_with_some_name <= 32'h5555_5555;
-        end
 
     end
 end
