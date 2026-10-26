@@ -1,0 +1,54 @@
+# ==========================================
+# ModelSim / Questa generated files
+# ==========================================
+
+modelsim/
+work/
+transcript
+vsim.wlf
+*.wlf
+*.log
+
+
+# ==========================================
+# Quartus generated directories
+# ==========================================
+
+db/
+incremental_db/
+output_files/
+simulation/
+greybox_tmp/
+
+
+# ==========================================
+# Quartus temporary/generated files
+# ==========================================
+
+*.rpt
+*.summary
+*.smsg
+*.done
+*.jdi
+*.qws
+*.qdf
+*.qws
+*.bak
+*.qmsg
+*.chg
+*.cmp
+*.eqn
+*.pin
+*.sof
+*.pof
+*.rbf
+
+
+# ==========================================
+# Temporary/editor files
+# ==========================================
+
+*.tmp
+*.temp
+*~
+.vscode/
