@@ -52,3 +52,5 @@ greybox_tmp/
 *.temp
 *~
 .vscode/
+# Quartus working project
+quartus/
