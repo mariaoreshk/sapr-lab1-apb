@@ -54,3 +54,7 @@ greybox_tmp/
 .vscode/
 # Quartus working project
 quartus/
+# lab2 generated files
+lab2/scripts/work/
+lab2/scripts/modelsim.ini
+lab2/fpga/lab2.qsf.bak
