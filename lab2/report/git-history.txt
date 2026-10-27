@@ -1,0 +1,21 @@
+* 39742b7 (HEAD -> lab2-variant6) Record passing ModelSim tests and Quartus compilation for lab 2
+* bd7d0d7 Add Cyclone II Quartus project and 50 MHz timing constraints
+* ae44ea6 Add self-checking APB master testbench and ModelSim runner
+* f26244a Implement APB arithmetic slave with protected register access
+* 3e03a5a Initialize lab 2 variant 6 and document register map
+* 923be16 (tag: v1.0, origin/main, main) Finalize APB project
+* 42dc2ad Add Git ignore rules for Quartus and ModelSim
+* b4b32f7 Add APB top-level testbench
+* c5b30dd Add APB top module
+* ac58cee Add APB master module
+* edc2c3d Extend APB testbench for personal data
+* d480f84 Add APB register map for personal data
+* 2188608 Add APB testbench
+* 1f4caa4 Fix APB slave register logic
+* 847beab Add APB slave module
+*   e990f81 Resolve merge conflict in README
+|\  
+| * a524fe3 (origin/feature-update, feature-update) Update README in feature branch
+* | f42f3e4 Add SystemVerilog information to README
+|/  
+* c45a32f Initial commit: add README
