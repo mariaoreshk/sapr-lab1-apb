@@ -9,7 +9,7 @@ module apb_alu_slave (
     logic [31:0] operand1, operand2, control, result;
     logic valid_addr;
 
-    // ????? ? ???? access
+    // apb register logic
     always_comb begin
         valid_addr = (paddr == BASE) || (paddr == BASE + 4) ||
                      (paddr == BASE + 8) || (paddr == BASE + 12);
@@ -29,7 +29,7 @@ module apb_alu_slave (
         end
     end
 
-    // ?????? ?????? ??? ?????????? ??????
+    // apb register logic
     always_ff @(posedge pclk) begin
         if (!presetn) begin
             operand1 <= 0;
@@ -42,7 +42,7 @@ module apb_alu_slave (
                 BASE + 4: operand2 <= pwdata;
                 BASE + 8: begin
                     control <= pwdata;
-                    // ??????? 32 ???? ??????????
+                    // apb register logic
                     if (pwdata[0]) result <= operand1 - operand2;
                     else result <= operand1 + operand2;
                 end
@@ -51,3 +51,4 @@ module apb_alu_slave (
         end
     end
 endmodule
+
