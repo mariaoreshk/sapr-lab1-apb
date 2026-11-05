@@ -13,14 +13,17 @@ void traffic_light_init(struct traffic_light *light)
 
 void traffic_light_tick(struct traffic_light *light)
 {
+    /* При недопустимой фазе восстанавливается начальное состояние. */
     if ((unsigned int)light->phase >= TRAFFIC_PHASE_COUNT) {
         traffic_light_init(light);
         return;
     }
 
     light->elapsed_ms++;
+    /* Переход выполняется после окончания текущей фазы. */
     if (light->elapsed_ms >= phase_duration_ms[light->phase]) {
         light->elapsed_ms = 0u;
+        /* После завершающей паузы цикл повторяется без стартовой фазы. */
         if (light->phase == TRAFFIC_CLEAR_B_TO_A) {
             light->phase = TRAFFIC_A_GO;
         } else {
