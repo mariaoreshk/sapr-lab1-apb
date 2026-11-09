@@ -1,50 +1,50 @@
-#include "traffic_light.h"
+#include "system.h"
+#include "altera_avalon_pio_regs.h"
+#include "altera_avalon_timer_regs.h"
 
-/* Timing assumptions: green 10 s, yellow 3 s, all-red interval 1 s. */
-static const uint32_t phase_duration_ms[TRAFFIC_PHASE_COUNT] = {
-    1000u, 10000u, 3000u, 1000u, 10000u, 3000u, 1000u
+#ifdef LAB3_FAST_SIMULATION
+#define TICKS_PER_SECOND 1u
+#else
+#define TICKS_PER_SECOND 1000u
+#endif
+
+/* Вариант 6. Две равнозначные дороги, по три полосы на каждой. */
+enum {
+    A_RED    = 1u << 0,
+    A_YELLOW = 1u << 1,
+    A_GREEN  = 1u << 2,
+    B_RED    = 1u << 3,
+    B_YELLOW = 1u << 4,
+    B_GREEN  = 1u << 5
 };
 
-void traffic_light_init(struct traffic_light *light)
+/* На плате таймер даёт 1000 отсчётов в секунду. */
+static void show_lights(unsigned int lights, unsigned int ticks)
 {
-    light->phase = TRAFFIC_STARTUP;
-    light->elapsed_ms = 0u;
-}
-
-void traffic_light_tick(struct traffic_light *light)
-{
-    /* При недопустимой фазе восстанавливается начальное состояние. */
-    if ((unsigned int)light->phase >= TRAFFIC_PHASE_COUNT) {
-        traffic_light_init(light);
-        return;
-    }
-
-    light->elapsed_ms++;
-    /* Переход выполняется после окончания текущей фазы. */
-    if (light->elapsed_ms >= phase_duration_ms[light->phase]) {
-        light->elapsed_ms = 0u;
-        /* После завершающей паузы цикл повторяется без стартовой фазы. */
-        if (light->phase == TRAFFIC_CLEAR_B_TO_A) {
-            light->phase = TRAFFIC_A_GO;
-        } else {
-            light->phase = (enum traffic_phase)(light->phase + 1);
+    IOWR_ALTERA_AVALON_PIO_DATA(LEDS_BASE, lights);
+    while (ticks > 0) {
+        while (!(IORD_ALTERA_AVALON_TIMER_STATUS(TIMER_BASE) &
+                 ALTERA_AVALON_TIMER_STATUS_TO_MSK)) {
         }
+        IOWR_ALTERA_AVALON_TIMER_STATUS(TIMER_BASE, 0);
+        --ticks;
     }
 }
 
-uint8_t traffic_light_output(const struct traffic_light *light)
+int main(void)
 {
-    switch (light->phase) {
-    case TRAFFIC_A_GO:
-        return TRAFFIC_A_GREEN | TRAFFIC_B_RED;
-    case TRAFFIC_A_WAIT:
-        return TRAFFIC_A_YELLOW | TRAFFIC_B_RED;
-    case TRAFFIC_B_GO:
-        return TRAFFIC_A_RED | TRAFFIC_B_GREEN;
-    case TRAFFIC_B_WAIT:
-        return TRAFFIC_A_RED | TRAFFIC_B_YELLOW;
-    default:
-        /* Startup, clearance intervals and invalid phases all show red. */
-        return TRAFFIC_A_RED | TRAFFIC_B_RED;
+    IOWR_ALTERA_AVALON_TIMER_STATUS(TIMER_BASE, 0);
+    IOWR_ALTERA_AVALON_TIMER_CONTROL(TIMER_BASE,
+        ALTERA_AVALON_TIMER_CONTROL_CONT_MSK |
+        ALTERA_AVALON_TIMER_CONTROL_START_MSK);
+
+    show_lights(A_RED | B_RED, TICKS_PER_SECOND);
+    for (;;) {
+        show_lights(A_GREEN  | B_RED,    10u * TICKS_PER_SECOND);
+        show_lights(A_YELLOW | B_RED,     3u * TICKS_PER_SECOND);
+        show_lights(A_RED    | B_RED,          TICKS_PER_SECOND);
+        show_lights(A_RED    | B_GREEN,  10u * TICKS_PER_SECOND);
+        show_lights(A_RED    | B_YELLOW,  3u * TICKS_PER_SECOND);
+        show_lights(A_RED    | B_RED,          TICKS_PER_SECOND);
     }
 }
