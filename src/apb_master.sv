@@ -1,5 +1,9 @@
-module apb_master
-(
+module apb_master #(
+    parameter logic [31:0] DATA0 = 32'd6,
+    parameter logic [31:0] DATA1 = 32'h2610_2026,
+    parameter logic [31:0] DATA2 = 32'h4F72_6573,
+    parameter logic [31:0] DATA3 = 32'h4D61_7269
+) (
     input  logic        pclk,
     input  logic        presetn,
 
@@ -31,12 +35,12 @@ localparam logic [31:0] DEVICE_BASE = 32'h7000_0000;
 // ------------------------------------------------------------
 
 // Номер в списке = 6
-localparam logic [31:0] STUDENT_NUMBER = 32'd6;
+
 
 
 // Дата выполнения лабораторной = 26.10.2026
 // Представление DDMMYYYY
-localparam logic [31:0] DATE_VALUE = 32'h2610_2026;
+
 
 
 // "Ores" в ASCII:
@@ -44,7 +48,7 @@ localparam logic [31:0] DATE_VALUE = 32'h2610_2026;
 // r = 72
 // e = 65
 // s = 73
-localparam logic [31:0] SURNAME_VALUE = 32'h4F72_6573;
+
 
 
 // "Mari" в ASCII:
@@ -52,7 +56,7 @@ localparam logic [31:0] SURNAME_VALUE = 32'h4F72_6573;
 // a = 61
 // r = 72
 // i = 69
-localparam logic [31:0] NAME_VALUE = 32'h4D61_7269;
+
 
 
 // ------------------------------------------------------------
@@ -106,7 +110,7 @@ begin
         begin
 
             paddr  = DEVICE_BASE + 32'h00;
-            pwdata = STUDENT_NUMBER;
+            pwdata = DATA0;
 
         end
 
@@ -120,7 +124,7 @@ begin
         begin
 
             paddr  = DEVICE_BASE + 32'h04;
-            pwdata = DATE_VALUE;
+            pwdata = DATA1;
 
         end
 
@@ -134,7 +138,7 @@ begin
         begin
 
             paddr  = DEVICE_BASE + 32'h08;
-            pwdata = SURNAME_VALUE;
+            pwdata = DATA2;
 
         end
 
@@ -148,7 +152,7 @@ begin
         begin
 
             paddr  = DEVICE_BASE + 32'h0C;
-            pwdata = NAME_VALUE;
+            pwdata = DATA3;
 
         end
 
