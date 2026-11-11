@@ -19,7 +19,7 @@
 с PSLVERR без изменения регистров. Slave не добавляет такты ожидания.
 Сброс синхронный, активный низкий. PREADY активен только в access при снятом сбросе.
 
-Структура: rtl — синтезируемый slave; tb — тестовые стенды; scripts — запуск ModelSim; fpga — проект Quartus. Из каталога scripts выполните vsim -c -do run.do для полной проверки или vsim -c -do run_master.do для проверки с apb_master из ЛР1.
+Структура: rtl — синтезируемый slave; tb — тестовые стенды; scripts — запуск ModelSim. Из каталога scripts выполните vsim -c -do run.do для полной проверки или vsim -c -do run_master.do для проверки с apb_master из ЛР1.
 
 ## Кодовое покрытие
 

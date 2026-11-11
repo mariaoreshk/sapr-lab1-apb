@@ -57,5 +57,7 @@ quartus/
 # lab2 generated files
 lab2/scripts/work/
 lab2/scripts/modelsim.ini
-lab2/fpga/lab2.qsf.bak
+/lab2/fpga/
 /lab2/report/
+/lab2/scripts/coverage_work/
+/lab2/scripts/*.vcd
